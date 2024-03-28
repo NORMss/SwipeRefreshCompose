@@ -6,27 +6,22 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import com.norm.myswiperefreshcompose.ui.theme.MySwipeRefreshComposeTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,43 +31,47 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var itemCount by remember {
-                        mutableStateOf(5)
+                    val itemCount = remember {
+                        (1..100).map { "Item $it" }
                     }
-                    val state = rememberPullToRefreshState()
-                    if (state.isRefreshing) {
-                        LaunchedEffect(true) {
-                            delay(1500)
-                            itemCount += 2
-                            state.endRefresh()
-                        }
+                    var isRefreshing by remember {
+                        mutableStateOf(false)
                     }
+                    val scope = rememberCoroutineScope()
+
                     Box(
                         modifier = Modifier
-                            .nestedScroll(state.nestedScrollConnection)
                             .fillMaxSize()
-                            .padding(16.dp)
                     ) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize(),
-                        ) {
-                            if (!state.isRefreshing) {
-                                items(itemCount) {
-                                    ListItem(
-                                        {
-                                            Text(text = "Item ${itemCount - it}")
-                                        }
-                                    )
+                        PullToRefreshLazyColumn(
+                            items = itemCount,
+                            content = { itemTitle ->
+                                Text(
+                                    text = itemTitle,
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                )
+                            },
+                            isRefreshing = isRefreshing,
+                            onRefresh = {
+                                scope.launch {
+                                    isRefreshing = true
+                                    delay(3000L) //Simulate API request
+                                    isRefreshing = false
                                 }
                             }
-                        }
-                        PullToRefreshContainer(
-                            modifier = Modifier
-//                                .offset(y = -16.dp)
-                                .align(Alignment.TopCenter),
-                            state = state,
                         )
+                        Button(
+                            onClick = {
+                                isRefreshing = true
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                        ) {
+                            Text(
+                                text = "Refresh"
+                            )
+                        }
                     }
                 }
             }
